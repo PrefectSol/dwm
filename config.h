@@ -63,7 +63,7 @@ static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont,
 static const char *termcmd[]  = { "st", NULL };
 static const char *incvol[] = {"pactl", "set-sink-volume", "@DEFAULT_SINK@", "+5%", NULL};
 static const char *decvol[] = {"pactl", "set-sink-volume", "@DEFAULT_SINK@", "-5%", NULL};
-static const char *mutevol[] = {"pactl", "set-sink-mute", "@DEFAULT_SINK", "toggle", NULL};
+static const char *mutevol[] = {"pactl", "set-sink-mute", "@DEFAULT_SINK@", "toggle", NULL};
 
 static const Key keys[] = {
 	/* modifier                     key        function        argument */
