@@ -71,6 +71,7 @@ typedef union {
 	int i;
 	unsigned int ui;
 	float f;
+	float sf;
 	const void *v;
 } Arg;
 
@@ -116,6 +117,7 @@ typedef struct Pertag Pertag;
 struct Monitor {
 	char ltsymbol[16];
 	float mfact;
+	float smfact;
 	int nmaster;
 	int num;
 	int by;               /* bar geometry */
@@ -209,6 +211,7 @@ static void setfullscreen(Client *c, int fullscreen);
 static void setgaps(const Arg *arg);
 static void setlayout(const Arg *arg);
 static void setmfact(const Arg *arg);
+static void setsmfact(const Arg *arg);
 static void setup(void);
 static void seturgent(Client *c, int urg);
 static void showhide(Client *c);
@@ -705,6 +708,7 @@ createmon(void)
 	m = ecalloc(1, sizeof(Monitor));
 	m->tagset[0] = m->tagset[1] = 1;
 	m->mfact = mfact;
+	m->smfact = smfact;
 	m->nmaster = nmaster;
 	m->showbar = showbar;
 	m->topbar = topbar;
@@ -1753,16 +1757,15 @@ setlayout(const Arg *arg)
 
 /* arg > 1.0 will set mfact absolutely */
 void
-setmfact(const Arg *arg)
-{
-	float f;
+setsmfact(const Arg *arg) {
+	float sf;
 
-	if (!arg || !selmon->lt[selmon->sellt]->arrange)
+	if(!arg || !selmon->lt[selmon->sellt]->arrange)
 		return;
-	f = arg->f < 1.0 ? arg->f + selmon->mfact : arg->f - 1.0;
-	if (f < 0.05 || f > 0.95)
+	sf = arg->sf < 1.0 ? arg->sf + selmon->smfact : arg->sf - 1.0;
+	if(sf < 0 || sf > 0.9)
 		return;
-	selmon->mfact = selmon->pertag->mfacts[selmon->pertag->curtag] = f;
+	selmon->smfact = sf;
 	arrange(selmon);
 }
 
@@ -1918,7 +1921,7 @@ tagmon(const Arg *arg)
 void
 tile(Monitor *m)
 {
-	unsigned int i, n, h, mw, my, ty;
+	unsigned int i, n, h, smh, mw, my, ty;
 	Client *c;
 
 	for (n = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), n++);
@@ -1931,16 +1934,39 @@ tile(Monitor *m)
 		mw = m->ww - m->gappx;
 	for (i = 0, my = ty = m->gappx, c = nexttiled(m->clients); c; c = nexttiled(c->next), i++)
 			if (i < m->nmaster) {
-			h = (m->wh - my) / (MIN(n, m->nmaster) - i) - m->gappx;
-			resize(c, m->wx + m->gappx, m->wy + my, mw - (2*c->bw) - m->gappx, h - (2*c->bw), 0);
-			if (my + HEIGHT(c) + m->gappx < m->wh)
-				my += HEIGHT(c) + m->gappx;
-		} else {
-			h = (m->wh - ty) / (n - i) - m->gappx;
-			resize(c, m->wx + mw + m->gappx, m->wy + ty, m->ww - mw - (2*c->bw) - 2*m->gappx, h - (2*c->bw), 0);
-			if (ty + HEIGHT(c) + m->gappx < m->wh)
-				ty += HEIGHT(c) + m->gappx;
-		}
+                h = (m->wh - my) / (MIN(n, m->nmaster) - i) - m->gappx;
+                resize(c, m->wx + m->gappx, m->wy + my, mw - (2*c->bw) - m->gappx, h - (2*c->bw), 0);
+                if (my + HEIGHT(c) + m->gappx < m->wh)
+                    my += HEIGHT(c) + m->gappx;
+            } else  {
+                smh = m->mh * m->smfact;
+                h = (m->wh - ty) / (n - i) - m->gappx;
+                
+                if (!(nexttiled(c->next)))
+                    h = (m->wh - ty) / (n - i) - m->gappx;
+                else
+                    h = (m->wh - smh - ty) / (n - i) - m->gappx;
+                    
+                if (h < minwsz) {
+                    c->isfloating = True;
+                    XRaiseWindow(dpy, c->win);
+                    resize(c, m->mx + (m->mw / 2 - WIDTH(c) / 2),
+                        m->my + (m->mh / 2 - HEIGHT(c) / 2),
+                        m->ww - mw - (2*c->bw),
+                        h - (2*c->bw), False);
+                    ty -= HEIGHT(c);
+                } else {
+                    resize(c, m->wx + mw + m->gappx,
+                        m->wy + ty,
+                        m->ww - mw - (2*c->bw) - 2*m->gappx,
+                        h - (2*c->bw), 0);
+                }
+                
+                if (!(nexttiled(c->next)))
+                    ty += HEIGHT(c) + smh + m->gappx;
+                else
+                    ty += HEIGHT(c) + m->gappx;
+            }
 }
 
 void
