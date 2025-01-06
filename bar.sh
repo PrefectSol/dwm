@@ -1,24 +1,39 @@
 #!/bin/bash
 
+# Function to calculate network traffic
+update() {
+    sum=0
+    for arg; do
+        read -r i < "$arg"
+        sum=$(( sum + i ))
+    done
+    cache=/tmp/${1##*/}
+    [ -f "$cache" ] && read -r old < "$cache" || old=0
+    printf %d\\n "$sum" > "$cache"
+    printf %d\\n $(( sum - old ))
+}
+
 while true; do
-    BAR_BG="^b#2a2a2a^"
+    # Get memory usage
+    MEMORY=$(free -h | awk '/^Mem/ {printf "Mem %s/%s", $3, $2}')
     
-    GRAY3="#bbbbbb"
-    GRAY4="#eeeeee"
-    CYAN="#005577"
+    # Get network traffic statistics
+    rx=$(update /sys/class/net/[ew]*/statistics/rx_bytes)
+    tx=$(update /sys/class/net/[ew]*/statistics/tx_bytes)
+    NET=$(printf "Net(d/u) %4sB/%4sB" $(numfmt --to=iec $rx $tx))
     
-    MEMORY=$(free -h | awk '/^Mem/ {printf "^c'$CYAN'^RAM ^c'$GRAY4'^%s/%s", $3, $2}')
+    # Get keyboard layout
+    LAYOUT=$(xset -q | grep LED | awk '{if(substr($10,5,1)==1) printf "ru"; else printf "en"}')
     
-    NET=$(ifstat -i wlan0 1 1 | awk 'NR==3 {printf "^c'$CYAN'^NET ^c'$GRAY4'^%.1fK/%.1fK", $1, $2}')
+    # Get current date and time
+    DATETIME=$(date "+%a, %d %b %H:%M:%S")
     
-    LAYOUT=$(xset -q | grep LED | awk '{if(substr($10,5,1)==1) \
-        printf "^c'$CYAN'^KB ^c'$GRAY4'^RU"; \
-        else printf "^c'$CYAN'^KB ^c'$GRAY4'^EN"}')
+    # Combine all information
+    STATUS=" [$MEMORY] [$NET] [$LAYOUT] [$DATETIME] "
     
-    DATETIME=$(date "+^c'$CYAN'^%H:%M ^c'$GRAY4'^%d.%m.%Y")
-    
-    STATUS="$BAR_BG $MEMORY ^c$GRAY3^| $NET ^c$GRAY3^| $LAYOUT ^c$GRAY3^| $DATETIME ^b#000000^"
-    
+    # Set root window name
     xsetroot -name "$STATUS"
-    sleep 1
+    
+    # Wait before next update
+    sleep 2
 done
