@@ -70,6 +70,7 @@ static const char *termcmd[]  = { "st", NULL };
 static const char *incvol[] = {"pactl", "set-sink-volume", "@DEFAULT_SINK@", "+5%", NULL};
 static const char *decvol[] = {"pactl", "set-sink-volume", "@DEFAULT_SINK@", "-5%", NULL};
 static const char *mutevol[] = {"pactl", "set-sink-mute", "@DEFAULT_SINK@", "toggle", NULL};
+static const char *flameshotcmd[] = { "flameshot", "gui", NULL };
 
 static const Key keys[] = {
 	/* modifier                     key        function        argument */
@@ -132,6 +133,7 @@ static const Key keys[] = {
     { MODKEY,             XK_F2,      spawn, {.v = decvol} }, 
     { MODKEY,             XK_F3,      spawn, {.v = incvol} }, 
     { MODKEY,             XK_F4,      spawn, {.v = mutevol} },
+    { 0,                            XK_Print,  spawn,          {.v = flameshotcmd } },
 };
 
 /* button definitions */
